@@ -1,103 +1,178 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { Header, LoadingPage } from "@/components";
+import { useAppState } from "@/hooks/useAppState";
+import { AppStep } from "@/types/app";
+import { ONBOARDING_STEP_PROPS } from "@/constants/app";
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+// Lazy load komponen berdasarkan langkah
+const WelcomeScreen = dynamic(() => import('@/components').then(mod => ({ default: mod.WelcomeScreen })));
+const OnboardingStep = dynamic(() => import('@/components').then(mod => ({ default: mod.OnboardingStep })));
+const InputStep = dynamic(() => import('@/components').then(mod => ({ default: mod.InputStep })));
+const ConfirmationStep = dynamic(() => import('@/components').then(mod => ({ default: mod.ConfirmationStep })));
+
+// Placeholder untuk lazy loading
+const StepPlaceholder = () => (
+  <div className="flex-1 flex flex-col items-center justify-center">
+    <div className="w-64 h-64 rounded-full bg-purple-900/20 animate-pulse"></div>
+  </div>
+);
+
+export default function HomePage() {
+  const { state, actions } = useAppState();
+
+  const handleHexagonLoaded = () => {
+    actions.setHexagonLoaded(true);
+  };
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Function to handle back navigation
+  const handleBack = () => {
+    switch (state.currentStep) {
+      case AppStep.OnboardingStep2:
+        actions.setStep(AppStep.OnboardingStep1);
+        break;
+      case AppStep.OnboardingStep3:
+        actions.setStep(AppStep.OnboardingStep2);
+        break;
+      case AppStep.NameInput:
+        actions.setStep(AppStep.OnboardingStep3);
+        break;
+      case AppStep.EmailInput:
+        actions.setStep(AppStep.NameInput);
+        break;
+      case AppStep.Confirmation:
+        actions.setStep(AppStep.EmailInput);
+        break;
+      default:
+        // For Welcome step or others, don't go back
+        break;
+    }
+  };
+
+  // Function to determine if back button should be shown
+  const shouldShowBackButton = () => {
+    return state.currentStep !== AppStep.Welcome && !state.isLoading;
+  };
+
+  const renderCurrentStep = () => {
+    switch (state.currentStep) {
+      case AppStep.Welcome:
+        return (
+          <Suspense fallback={<StepPlaceholder />}>
+            <WelcomeScreen
+              onGetStarted={() => actions.setStep(AppStep.OnboardingStep1)}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+          </Suspense>
+        );
+
+      case AppStep.OnboardingStep1:
+        return (
+          <OnboardingStep
+            {...ONBOARDING_STEP_PROPS[AppStep.OnboardingStep1]}
+            onContinue={() => actions.setStep(AppStep.OnboardingStep2)}
+          />
+        );
+
+      case AppStep.OnboardingStep2:
+        return (
+          <OnboardingStep
+            {...ONBOARDING_STEP_PROPS[AppStep.OnboardingStep2]}
+            onContinue={() => actions.setStep(AppStep.OnboardingStep3)}
+          />
+        );
+
+      case AppStep.OnboardingStep3:
+        return (
+          <OnboardingStep
+            {...ONBOARDING_STEP_PROPS[AppStep.OnboardingStep3]}
+            onContinue={() => actions.setStep(AppStep.NameInput)}
+          />
+        );
+
+      case AppStep.NameInput:
+        return (
+          <InputStep
+            title="What's your first name?"
+            placeholder="Enter your first name"
+            value={state.firstName}
+            onChange={actions.setFirstName}
+            onContinue={() => {
+              if (state.firstName.trim()) {
+                actions.setStep(AppStep.EmailInput);
+              }
+            }}
+            inputType="text"
+            canContinue={state.firstName.trim() !== ''}
+          />
+        );
+
+      case AppStep.EmailInput:
+        return (
+          <InputStep
+            title="What's your email address?"
+            placeholder="Enter your email"
+            value={state.email}
+            onChange={actions.setEmail}
+            onContinue={() => {
+              if (isValidEmail(state.email)) {
+                actions.setStep(AppStep.Confirmation);
+              }
+            }}
+            inputType="email"
+            canContinue={isValidEmail(state.email)}
+          />
+        );
+
+      case AppStep.Confirmation:
+        return (
+          <ConfirmationStep
+            name={state.firstName}
+            onContinue={() => {
+              actions.setLoading(true);
+              setTimeout(() => {
+                actions.setLoading(false);
+                actions.setStep(AppStep.Welcome);
+              }, 3000);
+            }}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  if (state.isLoading) {
+    return (
+      <LoadingPage
+        message="Processing your reality check..."
+        onHexagonLoaded={handleHexagonLoaded}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="min-h-screen text-white grid grid-rows-[auto_1fr]"
+      style={{
+        background: 'linear-gradient(to bottom, #151620, #0C0D10)',
+      }}
+    >
+      <Header
+        showBackButton={shouldShowBackButton()}
+        onBack={handleBack}
+        onRefresh={() => window.location.reload()}
+      />
+      <main className="flex items-center justify-center px-4">
+        <div className="w-full max-w-4xl">{renderCurrentStep()}</div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
