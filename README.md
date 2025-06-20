@@ -1,8 +1,12 @@
-# Juicebox - Interactive Onboarding Application
+# HexFlow - Interactive Onboarding Application
 
 ## Description
 
-Juicebox is an interactive web application built with Next.js. It provides an engaging onboarding experience for users with animations and personalized steps. The application collects basic information from users (name and email) and compares their responses with other professionals in the same industry to provide insights into current industry sentiment.
+HexFlow is an interactive web application built with Next.js. It provides an engaging onboarding experience for users with animations and personalized steps. The application collects basic information from users (name and email) and compares their responses with other professionals in the same industry to provide insights into current industry sentiment.
+
+## Demo
+
+Lihat demo aplikasi di: [https://hex-flow-fadildrs-projects.vercel.app/](https://hex-flow-fadildrs-projects.vercel.app/)
 
 ## Key Features
 
@@ -78,8 +82,8 @@ Juicebox is an interactive web application built with Next.js. It provides an en
 
 ```bash
 # Clone repository (if not already done)
-git clone <repository-url>
-cd juicebox
+git clone https://github.com/fadildr/HexFlow.git
+cd HexFlow
 
 # Install dependencies
 npm install
